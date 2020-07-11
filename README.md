@@ -78,8 +78,11 @@ feature and higher the importance the feature has on determining the output.
 
 The main objective is to segregate the given dataset in the best possible way. The distance between the either nearest points is known as the margin. The objective is to select a hyperplane with the maximum possible margin between support vectors in the given dataset. SVM searches for the maximum marginal hyperplane in the following steps:
 
-   1. Generate hyperplanes which segregate the classes in the best way. Left-hand side figure showing three hyperplanes black, blue and orange. Here, the blue and orange have higher classification error, but the black is separating the two classes correctly.
-   2. Select the right hyperplane with the maximum segregation from the either nearest data points as shown in the right-hand side figure.
+    1. Generate hyperplanes which segregate the classes in the best way. Left-hand side figure showing three hyperplanes black, 
+    blue and orange. Here, the blue and orange have higher classification error, but the black is separating the two classes correctly.
+    
+    2. Select the right hyperplane with the maximum segregation from the either nearest data points as shown in the right-hand side figure.
+    
 The SVM algorithm is implemented in practice using a kernel. A kernel transforms an input data space into the required form.A linear kernel can be used as a normal dot product of any two given observations. The product between two vectors is the sum of the multiplication of each pair of input values.
 
 
