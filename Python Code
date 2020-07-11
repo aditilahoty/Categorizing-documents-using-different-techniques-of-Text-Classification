@@ -1,0 +1,122 @@
+import pandas as pd
+import sklearn
+import numpy as np
+import nltk
+import matplotlib.pyplot as plt
+
+import re
+
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
+
+from sklearn import tree
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_selection import chi2
+
+from sklearn.preprocessing import Normalizer
+from sklearn.pipeline import make_pipeline
+
+from sklearn.feature_selection import SelectFromModel
+from sklearn.feature_selection import SelectKBest
+
+from sklearn.cross_validation import StratifiedKFold
+from sklearn.metrics import precision_recall_fscore_support
+
+import gensim, logging
+from gensim.models import Word2Vec
+from scipy import sparse
+
+data = pd.read_csv("dataset.csv")
+
+titles = data["Title"]
+labels =data["Conference"]
+labels.head()
+
+def preProcessing(titles):
+    num_titles = titles.size
+    clean_titles = []
+    nltk.download('stopwords')
+    stops = set(stopwords.words("english"))
+    for i in range( 0, num_titles):
+        #letters_only = re.sub("[^a-zA-Z]", " ", titles[i])
+        words = titles[i].lower()
+        words = titles[i].split()
+        words = [w for w in words if not w in stops]
+        clean_titles.append(" ".join(words))
+    return clean_titles
+
+processed_titles= preProcessing(titles)
+
+def getDTMByTFIDF(titles,nfeatures):
+    tfIdf_vectorizer = TfidfVectorizer(max_features=nfeatures)
+    dtm = tfIdf_vectorizer.fit_transform(titles).toarray()
+    return dtm, tfIdf_vectorizer
+    
+dtm,vect = getDTMByTFIDF(processed_titles,None)
+
+def featuresByChiSq(features,labels,nFeature=5000):
+    chi2_model = SelectKBest(chi2,k=nFeature)
+    dtm = chi2_model.fit_transform(features,labels)
+    return dtm
+
+chisqDtm = featuresByChiSq(dtm,labels,2000)
+
+def crossValidate(document_term_matrix,labels,classifier,nfold):
+    clf = None
+    precision = []
+    recall = []
+    fscore = []
+    
+    if classifier == "RF":
+        clf = RandomForestClassifier()
+    elif classifier == "SVM":
+        clf = LinearSVC()
+    
+    skf = StratifiedKFold(labels, n_folds=nfold)
+
+    for train_index, test_index in skf:
+        X_train, X_test = document_term_matrix[train_index], document_term_matrix[test_index]
+        y_train, y_test = labels[train_index], labels[test_index]
+        model = clf.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        p,r,f,s = precision_recall_fscore_support(y_test, y_pred, average='weighted')
+        precision.append(p)
+        recall.append(r)
+        fscore.append(f)
+        
+    return np.mean(precision),np.mean(recall),np.mean(fscore)
+
+
+
+
+precision_svm, recall_svm, fscore_svm = crossValidate(chisqDtm,labels,"SVM",10)
+print("ChiSq Features:",precision_svm, recall_svm, fscore_svm)
+
+precision_rf, recall_rf, fscore_rf = crossValidate(chisqDtm,labels,"RF",10)
+print("ChiSq Features:",precision_rf, recall_rf, fscore_rf)
+
+RF=[precision_rf,recall_rf,fscore_rf]
+SVM=[precision_svm,recall_svm,fscore_svm]
+
+N = 3
+RF = (precision_rf,recall_rf,fscore_rf)
+SVM = (precision_svm,recall_svm,fscore_svm)
+
+ind = np.arange(3) 
+width = 0.35       
+plt.bar(ind, RF, width, label='RF')
+plt.bar(ind + width, SVM, width,
+    label='SVM')
+
+# plt.ylabel('Scores')
+# plt.title('Scores by group and gender')
+
+plt.xticks(ind + width / 2, ('PRECISION', 'RECALL', 'FSCORE'))
+plt.legend(loc='best')
+plt.show()
+ 
+ 
